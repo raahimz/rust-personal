@@ -5,7 +5,7 @@ fn main() {
     let mut ssid = String::from("");
     let mut ip = String::from("");
     let mut bssid = String::from("");
-
+    
     let output = Command::new("ipconfig")
         .arg("getsummary")
         .arg("en0")
@@ -13,9 +13,9 @@ fn main() {
         .expect("failed to execute process");
 
     let output = String::from_utf8(output.stdout).expect("invalid utf8");
-    let output: Vec<&str> = output.trim().split(" ").collect();
+    let output: Vec<&str> = output.split("\n").collect();
 
-    for word in &output {
+    for word in output {
         let key_value: Vec<&str> = word.trim().split(":").collect();
         
         // Getting SSID
@@ -96,6 +96,5 @@ fn main() {
     }
     // println!("{:?}", output);
 
-    
     println!("SSID: {ssid} | BSSID: {bssid} | IP: {ip} | Frequency: {frequency} | Level: {signal_level}");
 }
