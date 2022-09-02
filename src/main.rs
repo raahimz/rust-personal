@@ -2,10 +2,28 @@ use std::process::Command;
 
 #[cfg(target_os = "macos")]
 fn main() {
-    let mut ssid = String::from("");
-    let mut ip = String::from("");
-    let mut bssid = String::from("");
+    let mut ssid = String::from("NA");
+    let mut ip = String::from("NA");
+    let mut bssid = String::from("NA");
+    let mut frequency = String::from("NA");
+    let mut rssi = String::from("NA");
+    let mut speed = String::from("NA");
 
+    // Getting Signal Level
+    let output = Command::new("/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport")
+        .arg("-I")
+        .arg("|")
+        .arg("grep")
+        .arg("CtlRSSI")
+        .output()
+        .expect("failed to execute process");
+
+    let output = String::from_utf8(output.stdout).expect("invalid utf8");
+    let output: Vec<&str> = output.trim().split(":").collect();
+    let output: Vec<&str> = output[1].trim().split("\n").collect();
+    rssi = String::from(output[0].trim());
+    
+    // Getting rest of the information
     let output = Command::new("ipconfig")
         .arg("getsummary")
         .arg("en0")
@@ -13,9 +31,9 @@ fn main() {
         .expect("failed to execute process");
 
     let output = String::from_utf8(output.stdout).expect("invalid utf8");
-    let output: Vec<&str> = output.trim().split(" ").collect();
+    let output: Vec<&str> = output.split("\n").collect();
 
-    for word in &output {
+    for word in output {
         let key_value: Vec<&str> = word.trim().split(":").collect();
         
         // Getting SSID
@@ -26,7 +44,7 @@ fn main() {
         // Getting BSSID
         if key_value[0].trim() == "BSSID" {
             let bssid_key_value: Vec<&str> = word.trim().split(" ").collect();
-            
+        
             bssid = String::from(bssid_key_value[2]);
         }
 
@@ -38,7 +56,7 @@ fn main() {
         }
     }
 
-    println!("SSID: {ssid} | BSSID: {bssid} | IP: {ip}");
+    println!("SSID: {ssid} | BSSID: {bssid} | IP: {ip} | Frequency: {frequency} | Level: {rssi} | Speed: {speed}");
 }
 
  #[cfg(target_os = "linux")]
@@ -47,7 +65,7 @@ fn main() {
     let mut ip = String::from("");
     let mut bssid = String::from("");
     let mut frequency = String::from("");
-    let mut signal_level = String::from("");
+    let mut rssi = String::from("");
     let mut speed = String::from("");
 
     // Getting IP
@@ -90,10 +108,10 @@ fn main() {
             frequency = String::from(value.trim());
         }
 
-        // Getting Level (dBm)
+        // Getting RSSI (dBm)
         if key_value_equals[0].trim() == "level" {
             let mut value = String::from(key_value_equals[1]);
-            signal_level = String::from(value.trim());
+            rssi = String::from(value.trim());
         }
 
         // Getting Speed (Bit Rate - MB/s)
@@ -106,5 +124,36 @@ fn main() {
     // println!("{:?}", output);
 
     
-    println!("SSID: {ssid} | BSSID: {bssid} | IP: {ip} | Frequency: {frequency} | Level: {signal_level} | Speed: {speed}");
+    println!("SSID: {ssid} | BSSID: {bssid} | IP: {ip} | Frequency: {frequency} | Level: {rssi} | Speed: {speed}");
+}
+
+ #[cfg(target_os = "windows")]
+ fn main() {
+    let mut ssid = String::from("NA");
+    let mut ip = String::from("NA");
+    let mut bssid = String::from("NA");
+    let mut frequency = String::from("NA");
+    let mut rssi = String::from("NA");
+    let mut speed = String::from("NA");
+
+    // Getting IP
+    let output = Command::new("ipconfig")
+        .output()
+        .expect("failed to execute process");
+        
+    let output = String::from_utf8(output.stdout).expect("invalid utf8");
+    let output: Vec<&str> = output.trim().split("\n").collect();
+
+    for word in output {
+        let key = word.trim();
+
+        if key.contains("IPv4 Address") {
+            let value: Vec<&str> = word.split(":").collect();
+            let value: Vec<&str> = value[1].split("\r").collect();
+
+            ip = String::from(value[0].trim());
+        }
+    }
+    
+    println!("SSID: {ssid} | BSSID: {bssid} | IP: {ip} | Frequency: {frequency} | Level: {rssi} | Speed: {speed}");
 }
