@@ -116,8 +116,12 @@ fn main() {
 
         // Getting Speed (MB/s)
         if key_value_equals[0].trim() == "Rate" {
-            let mut value = String::from(key_value_equals[1]);
-            speed = String::from(value.trim());
+            let value = key_value_equals[1].trim().parse::<i32>().unwrap();
+            
+            // Converting Mbps to MB/s
+            let value = value / 8;
+
+            speed = value.to_string();
         }
 
     }
