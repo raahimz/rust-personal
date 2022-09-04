@@ -56,7 +56,7 @@ fn main() {
         }
     }
 
-    println!("SSID: {ssid} | BSSID: {bssid} | IP: {ip} | Frequency: {frequency} | Level: {rssi} | Speed: {speed}");
+    println!("SSID: {ssid} | BSSID: {bssid} | IP: {ip} | Frequency: {frequency} | RSSI: {rssi} | Speed: {speed}");
 }
 
  #[cfg(target_os = "linux")]
@@ -114,17 +114,15 @@ fn main() {
             rssi = String::from(value.trim());
         }
 
-        // Getting Speed (Bit Rate - MB/s)
+        // Getting Speed (MB/s)
         if key_value_equals[0].trim() == "Rate" {
             let mut value = String::from(key_value_equals[1]);
             speed = String::from(value.trim());
         }
 
     }
-    // println!("{:?}", output);
-
     
-    println!("SSID: {ssid} | BSSID: {bssid} | IP: {ip} | Frequency: {frequency} | Level: {rssi} | Speed: {speed}");
+    println!("SSID: {ssid} | BSSID: {bssid} | IP: {ip} | Frequency: {frequency} | RSSI: {rssi} | Speed: {speed}");
 }
 
  #[cfg(target_os = "windows")]
@@ -154,6 +152,54 @@ fn main() {
             ip = String::from(value[0].trim());
         }
     }
+
+    // Getting rest of the information
+    let output = Command::new("netsh")
+        .arg("wlan")
+        .arg("show")
+        .arg("interfaces")
+        .output()
+        .expect("failed to execute process");
+        
+    let output = String::from_utf8(output.stdout).expect("invalid utf8");
+    let output: Vec<&str> = output.trim().split("\n").collect();
+
+    for word in output {
+        let key_value: Vec<&str> = word.trim().split(":").collect();
+
+        // Getting SSID
+        if key_value[0].trim() == "SSID" {
+            ssid = String::from(key_value[1].trim());
+        }
+
+        // Getting BSSID
+        if key_value[0].trim() == "BSSID" {
+            bssid = format!("{}:{}:{}:{}:{}:{}", key_value[1].trim(), key_value[2].trim(), key_value[3].trim(), key_value[4].trim(), key_value[5].trim(), key_value[6].trim());
+        }
+
+        // Getting Speed (MB/s)
+        if key_value[0].trim() == "Receive rate (Mbps)" {
+            let value = key_value[1].trim().parse::<i32>().unwrap();
+            
+            // Converting Mbps to MB/s
+            let value = value / 8;
+
+            speed = value.to_string();
+        }
+
+        // Getting RSSI (dBm)
+        if key_value[0].trim() == "Signal" {
+            let value: Vec<&str> = key_value[1].trim().split("%").collect();
+            let value = value[0].parse::<i32>().unwrap();
+            
+            // Converting Percentage (%) to dBm
+            let value = (value / 2) - 100;
+
+            rssi = value.to_string();
+        }
+    }
+
+    // println!("{:?}", output);
     
-    println!("SSID: {ssid} | BSSID: {bssid} | IP: {ip} | Frequency: {frequency} | Level: {rssi} | Speed: {speed}");
+    println!("SSID: {ssid} | BSSID: {bssid} | IP: {ip} | Frequency: {frequency} | RSSI: {rssi} | Speed: {speed}");
 }
